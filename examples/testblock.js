@@ -1,5 +1,7 @@
 
 const EventEmitter = require('events').EventEmitter;
+const util = require('util');
+
 
 
 function doJob(x,sec) {
@@ -21,6 +23,7 @@ function doJob(x,sec) {
 task_list = [];
 model = {'reset':0, 'clk':0, 'data':0};
 promise_list = [];
+g_ctx = {'foo':0};
 
 const print_tick = true;
 
@@ -46,8 +49,14 @@ function regTask(fn) {
 
 
 
-async function taskDoReset(top) {
-    top.reset = 0;
+async function taskDoReset(top, ctx) {
+  console.log('enter taskDoReset');
+  top.reset = 0;
+
+  await ctx.eq('clk', 1);
+
+  console.log('taskDoReset made it past clock');
+
     // for(let i = 0; i < 10; i++) {
         // await
     // }
@@ -60,17 +69,90 @@ async function taskDriveData(top) {
 }
 
 
+
+
+function BurgerCooking(s) {
+  EventEmitter.call(this);
+  this.setMaxListeners(Infinity);
+  console.log("BurgerCooking");
+  // this.signal = signal;
+  
+  // this.tick  = () => { signal(signal() ? 0 : 1) };
+
+  // this.run = (iter) => {
+  // for(i = 0; i < iter; i++) {
+  //     this.tick();
+  //     this.emit('tickevent', 'clockevent');
+  //     eval();
+  // }
+  // };
+
+  this.check = (c) => {
+    console.log("this.check was run");
+  }
+
+  this.eq = (signal,value) => {
+    return new Promise((resolve, reject) => {
+      this.on('tick', () => {
+        if(s.foo == 0) {
+          resolve();
+        }
+      });
+      // cook.on('end', resolve); // call resolve when its done
+      // cook.on('error', reject); // don't forget this
+    });
+  }
+
+}
+
+util.inherits(BurgerCooking, EventEmitter);
+
+
+
+
 async function startSim() {
+
+    console.log('before p1');
+
+    let cook = new BurgerCooking(g_ctx);
+
+    // Here we create an await our promise:
+    // await new Promise((resolve, reject) => {
+    //     // Here invoke our event emitter:
+    //     let cook = new BurgerCooking(g_ctx);
+    //     // cook.check();
+    //     // a normal event callback:
+    //     cook.on('update', percent => {
+    //         console.log(`The burger is ${percent}% done`);
+    //     });
+    //     cook.on('end', resolve); // call resolve when its done
+    //     cook.on('error', reject); // don't forget this
+    // });
+
+
+    console.log('about to enter tasks');
+
+
+
     const tasknum = task_list.length;
     for( let i = 0; i < tasknum; i++ ) {
-        task_list[i].fn(model);
+        task_list[i].fn(model, cook);
     }
+
+
+    console.log('finished enter tasks');
+
+
+    tick();
+
+    cook.emit('tick');
 
     tick();
     tick();
     tick();
-    tick();
 }
+
+regTask(taskDoReset);
 
 startSim();
 
