@@ -21,25 +21,25 @@ function doJob(x,sec) {
 
 
 task_list = [];
-model = {'reset':0, 'clk':0, 'data':0};
+g_dut = {'reset':0, 'clk':0, 'data':0};
 promise_list = [];
 g_ctx = {'foo':0, 'finished_ticks':0};
 
 const print_tick = true;
 
 function tick() {
-    if( model.clk == 0 ) {
+    if( g_dut.clk == 0 ) {
         if( print_tick ) {
             console.log('tick high');
         }
         // tick high
-        model.clk = 1;
+        g_dut.clk = 1;
     } else { 
         if( print_tick ) {
             console.log('tick low');
         }
         // tick low
-        model.clk = 0;
+        g_dut.clk = 0;
     }
 }
 
@@ -71,10 +71,10 @@ async function taskDriveData(top) {
 
 
 
-function BurgerCooking(ctx) {
+function SignalFlip(ctx) {
   EventEmitter.call(this);
   this.setMaxListeners(Infinity);
-  console.log("BurgerCooking");
+  console.log("SignalFlip");
   // this.signal = signal;
   
   // this.tick  = () => { signal(signal() ? 0 : 1) };
@@ -101,14 +101,14 @@ function BurgerCooking(ctx) {
           console.log('resolve post');
         }
       });
-      // cook.on('end', resolve); // call resolve when its done
-      // cook.on('error', reject); // don't forget this
+      // flip.on('end', resolve); // call resolve when its done
+      // flip.on('error', reject); // don't forget this
     });
   }
 
 }
 
-util.inherits(BurgerCooking, EventEmitter);
+util.inherits(SignalFlip, EventEmitter);
 
 
 
@@ -117,19 +117,19 @@ async function startSim() {
 
     console.log('before p1');
 
-    let cook = new BurgerCooking(g_ctx);
+    let flip = new SignalFlip(g_ctx);
 
     // Here we create an await our promise:
     // await new Promise((resolve, reject) => {
     //     // Here invoke our event emitter:
-    //     let cook = new BurgerCooking(g_ctx);
-    //     // cook.check();
+    //     let flip = new SignalFlip(g_ctx);
+    //     // flip.check();
     //     // a normal event callback:
-    //     cook.on('update', percent => {
+    //     flip.on('update', percent => {
     //         console.log(`The burger is ${percent}% done`);
     //     });
-    //     cook.on('end', resolve); // call resolve when its done
-    //     cook.on('error', reject); // don't forget this
+    //     flip.on('end', resolve); // call resolve when its done
+    //     flip.on('error', reject); // don't forget this
     // });
 
 
@@ -139,13 +139,13 @@ async function startSim() {
 
     const tasknum = task_list.length;
     for( let i = 0; i < tasknum; i++ ) {
-        task_list[i].fn(model, cook);
+        task_list[i].fn(g_dut, flip);
     }
 
 
     console.log('finished enter tasks');
 
-    cook.on('meta_tick_finish', () => {
+    flip.on('meta_tick_finish', () => {
       g_ctx.finished_ticks++;
 
       if(g_ctx.finished_ticks < 4) {
@@ -153,8 +153,8 @@ async function startSim() {
         setImmediate(() => {
           // console.log('immediate');
         tick();
-        cook.emit('tick');
-        cook.emit('meta_tick_finish');
+        flip.emit('tick');
+        flip.emit('meta_tick_finish');
         });
 
 
@@ -162,8 +162,8 @@ async function startSim() {
     });
 
     tick();
-    cook.emit('tick');
-    cook.emit('meta_tick_finish');
+    flip.emit('tick');
+    flip.emit('meta_tick_finish');
 
 }
 
