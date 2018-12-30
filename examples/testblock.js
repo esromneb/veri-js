@@ -71,10 +71,10 @@ async function taskDriveData(top) {
 
 
 
-function SignalFlip(ctx) {
+function SignalFlip(ctx, dut) {
   EventEmitter.call(this);
   this.setMaxListeners(Infinity);
-  console.log("SignalFlip");
+  // console.log("SignalFlip");
   // this.signal = signal;
   
   // this.tick  = () => { signal(signal() ? 0 : 1) };
@@ -92,15 +92,26 @@ function SignalFlip(ctx) {
   }
 
   this.eq = (signal,value) => {
+
+// if (typeof array[index] !== 'undefined') {
+    if( typeof dut[signal] === 'undefined') {
+      throw 'signal name ' + signal + ' was not found';
+    }
+
     return new Promise((resolve, reject) => {
-      this.on('tick', () => {
-        console.log('eq tick ' + JSON.stringify(ctx));
+
+      const on_tick = () => {
+        // console.log('eq tick ' + JSON.stringify(ctx));
         if(ctx.foo == 0) {
-          console.log('resolve');
+          // console.log('resolve');
           resolve();
-          console.log('resolve post');
+          // console.log('resolve post');
+          this.off('tick', on_tick);
         }
-      });
+      };
+
+
+      this.on('tick', on_tick);
       // flip.on('end', resolve); // call resolve when its done
       // flip.on('error', reject); // don't forget this
     });
@@ -115,9 +126,9 @@ util.inherits(SignalFlip, EventEmitter);
 
 async function startSim() {
 
-    console.log('before p1');
+    // console.log('before p1');
 
-    let flip = new SignalFlip(g_ctx);
+    let flip = new SignalFlip(g_ctx, g_dut);
 
     // Here we create an await our promise:
     // await new Promise((resolve, reject) => {
@@ -133,7 +144,7 @@ async function startSim() {
     // });
 
 
-    console.log('about to enter tasks');
+    // console.log('about to enter tasks');
 
 
 
@@ -143,18 +154,19 @@ async function startSim() {
     }
 
 
-    console.log('finished enter tasks');
+    // console.log('finished enter tasks');
 
     flip.on('meta_tick_finish', () => {
       g_ctx.finished_ticks++;
 
       if(g_ctx.finished_ticks < 4) {
 
+        // https://nodejs.org/en/docs/guides/event-loop-timers-and-nexttick/
         setImmediate(() => {
-          // console.log('immediate');
-        tick();
-        flip.emit('tick');
-        flip.emit('meta_tick_finish');
+            // console.log('immediate');
+          tick();
+          flip.emit('tick');
+          flip.emit('meta_tick_finish');
         });
 
 
