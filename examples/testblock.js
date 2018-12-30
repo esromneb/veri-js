@@ -49,13 +49,22 @@ function regTask(fn) {
 
 
 
-async function taskDoReset(top, ctx) {
+async function taskDoReset(top, ev) {
   console.log('enter taskDoReset');
+  top.reset = 1;
+
+
+  await ev( () => top.clk == 1 );
+
+  console.log('taskDoReset made it past clock high');
+
+
+  await ev( () => top.clk == 0 );
+
+  console.log('taskDoReset made it past clock low');
+
   top.reset = 0;
 
-  await ctx.eq('clk', 1);
-
-  console.log('taskDoReset made it past clock');
 
     // for(let i = 0; i < 10; i++) {
         // await
@@ -64,7 +73,20 @@ async function taskDoReset(top, ctx) {
 
 }
 
-async function taskDriveData(top) {
+async function taskDriveData(top, ev) {
+  console.log('enter taskDriveData');
+
+  await ev( () => top.reset == 0 && top.clk == 1 );
+  console.log('taskDriveData past reset');
+
+  while(1) {
+    top.data++;
+
+    console.log(top.data);
+
+    await ev( () => top.clk == 0 );
+    await ev( () => top.clk == 1 );
+  }
 
 }
 
@@ -74,35 +96,18 @@ async function taskDriveData(top) {
 function SignalFlip(ctx, dut) {
   EventEmitter.call(this);
   this.setMaxListeners(Infinity);
-  // console.log("SignalFlip");
-  // this.signal = signal;
-  
-  // this.tick  = () => { signal(signal() ? 0 : 1) };
-
-  // this.run = (iter) => {
-  // for(i = 0; i < iter; i++) {
-  //     this.tick();
-  //     this.emit('tickevent', 'clockevent');
-  //     eval();
-  // }
-  // };
 
   this.check = (c) => {
     console.log("this.check was run");
   }
 
-  this.eq = (signal,value) => {
-
-// if (typeof array[index] !== 'undefined') {
-    if( typeof dut[signal] === 'undefined') {
-      throw 'signal name ' + signal + ' was not found';
-    }
+  this.ev = (predicate) => {
 
     return new Promise((resolve, reject) => {
 
       const on_tick = () => {
         // console.log('eq tick ' + JSON.stringify(ctx));
-        if(ctx.foo == 0) {
+        if(predicate()) {
           // console.log('resolve');
           resolve();
           // console.log('resolve post');
@@ -150,7 +155,7 @@ async function startSim() {
 
     const tasknum = task_list.length;
     for( let i = 0; i < tasknum; i++ ) {
-        task_list[i].fn(g_dut, flip);
+        task_list[i].fn(g_dut, flip.ev);
     }
 
 
@@ -159,7 +164,7 @@ async function startSim() {
     flip.on('meta_tick_finish', () => {
       g_ctx.finished_ticks++;
 
-      if(g_ctx.finished_ticks < 4) {
+      if(g_ctx.finished_ticks < 10) {
 
         // https://nodejs.org/en/docs/guides/event-loop-timers-and-nexttick/
         setImmediate(() => {
@@ -180,6 +185,7 @@ async function startSim() {
 }
 
 regTask(taskDoReset);
+regTask(taskDriveData);
 
 startSim();
 
