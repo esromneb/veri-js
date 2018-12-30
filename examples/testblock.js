@@ -23,7 +23,7 @@ function doJob(x,sec) {
 task_list = [];
 model = {'reset':0, 'clk':0, 'data':0};
 promise_list = [];
-g_ctx = {'foo':0};
+g_ctx = {'foo':0, 'finished_ticks':0};
 
 const print_tick = true;
 
@@ -71,7 +71,7 @@ async function taskDriveData(top) {
 
 
 
-function BurgerCooking(s) {
+function BurgerCooking(ctx) {
   EventEmitter.call(this);
   this.setMaxListeners(Infinity);
   console.log("BurgerCooking");
@@ -94,8 +94,11 @@ function BurgerCooking(s) {
   this.eq = (signal,value) => {
     return new Promise((resolve, reject) => {
       this.on('tick', () => {
-        if(s.foo == 0) {
+        console.log('eq tick ' + JSON.stringify(ctx));
+        if(ctx.foo == 0) {
+          console.log('resolve');
           resolve();
+          console.log('resolve post');
         }
       });
       // cook.on('end', resolve); // call resolve when its done
@@ -142,14 +145,26 @@ async function startSim() {
 
     console.log('finished enter tasks');
 
+    cook.on('meta_tick_finish', () => {
+      g_ctx.finished_ticks++;
+
+      if(g_ctx.finished_ticks < 4) {
+
+        setImmediate(() => {
+          // console.log('immediate');
+        tick();
+        cook.emit('tick');
+        cook.emit('meta_tick_finish');
+        });
+
+
+      }
+    });
 
     tick();
-
     cook.emit('tick');
+    cook.emit('meta_tick_finish');
 
-    tick();
-    tick();
-    tick();
 }
 
 regTask(taskDoReset);
