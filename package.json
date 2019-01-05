@@ -3,9 +3,11 @@
    "version": "1.0.0",
    "main": "index.js",
    "dependencies": {
-      "node-addon-api": "latest",
+      "jsverify": "^0.8.4",
       "lodash": "latest",
-      "mustache": "latest"
+      "mocha": "^5.2.0",
+      "mustache": "latest",
+      "node-addon-api": "latest"
    },
    "scripts": {
       "compile": "make verilate && cd obj_dir && make -f ../Makefile_obj createlib",
